@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3887:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=https://paint-by-numbers.gradyserver.com/api
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3889:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    environment:
+      - CORS_ORIGINS=https://paint-by-numbers.gradyserver.com
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    restart: always
+    networks:
+      - app-network
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    restart: always
+    volumes:
+      - ./backend/uploads:/app/uploads
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
